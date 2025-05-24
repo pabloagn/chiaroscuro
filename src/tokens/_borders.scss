@@ -1,0 +1,27 @@
+// src/tokens/_borders.scss
+
+:root {
+  --border-width-0: 0;
+  --border-width-1: 1px;
+  --border-width-2: 2px;
+  --border-width-3: 3px;
+  --border-width-4: 4px;
+  --border-width-5: 5px;
+  --border-width-6: 6px;
+  --border-width-8: 8px;
+  --border-width-none: 0;
+  --border-width-thin: 1px;
+  --border-width-base: 2px;
+  --border-width-medium: 3px;
+  --border-width-thick: 4px;
+  --border-width-bold: 6px;
+  --border-style-none: none;
+  --border-style-solid: solid;
+  --border-style-dashed: dashed;
+  --border-style-dotted: dotted;
+  --border-style-double: double;
+  --border-style-groove: groove;
+  --border-style-ridge: ridge;
+  --border-style-inset: inset;
+  --border-style-outset: outset;
+}

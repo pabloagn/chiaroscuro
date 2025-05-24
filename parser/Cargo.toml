@@ -1,0 +1,10 @@
+# parser/Cargo.toml
+
+[package]
+name = "parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+regex = "1"
+indexmap = "2"
