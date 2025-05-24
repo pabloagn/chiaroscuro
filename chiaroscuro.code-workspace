@@ -10,11 +10,11 @@
     },
     {
       "name": "Tokens",
-      "path": "./src/tokens"
+      "path": "src/tokens"
     },
     {
       "name": "Theme",
-      "path": "./src/theme"
+      "path": "src/theme"
     }
   ],
 

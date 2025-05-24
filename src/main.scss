@@ -14,11 +14,3 @@
 // Semantic Theme Variables
 @import 'theme/variables-light';
 @import 'theme/variables-dark';
-:root {
-  @import 'theme/variables-light';
-}
-
-.theme-dark,
-[data-theme="dark"] {
-  @import 'theme/variables-dark';
-}
