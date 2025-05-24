@@ -8,6 +8,7 @@
 
 # Rust
 /parser/target/
+target_dev/.rustc_info.json
 **/*.rs.bk
 *.pdb
 
