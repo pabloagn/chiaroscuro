@@ -186,7 +186,7 @@ fn write_value<W: Write>(writer: &mut W, node: &IndexMap<String, Value>, indent_
             }
             Value::Nested(map) => {
                 writeln!(writer, "{}{} = {{", indent, key)?;
-                write_value(writer, map, indent_level + 1)?;
+                write_value(writer, &map, indent_level + 1)?;
                 writeln!(writer, "{}}};", indent)?;
             }
         }

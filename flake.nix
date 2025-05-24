@@ -13,7 +13,6 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        # Build the parser tool
         parser = pkgs.rustPlatform.buildRustPackage {
           pname = "parser";
           version = "0.1.0";
@@ -31,17 +30,17 @@
             sass
             rustc
             cargo
-            # Optional: for debugging
             rustfmt
             clippy
+            rust-analyzer
+            nixfmt
+            direnv
           ];
         };
 
         packages = {
-          # Export the parser tool separately if needed
           inherit parser;
 
-          # The main chiaroscuro package
           chiaroscuro = pkgs.stdenv.mkDerivation {
             pname = "chiaroscuro";
             version = "0.1.0";
