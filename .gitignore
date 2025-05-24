@@ -1,5 +1,8 @@
 # .gitignore
 
+# Outputs
+result/
+
 # Nix Development
 ./direnv
 
