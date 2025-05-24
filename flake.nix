@@ -12,53 +12,72 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+
+        # Build the parser tool
+        parser = pkgs.rustPlatform.buildRustPackage {
+          pname = "parser";
+          version = "0.1.0";
+          src = ./parser;
+
+          cargoLock = {
+            lockFile = ./parser/Cargo.lock;
+          };
+        };
+
       in
       {
         devShells.default = pkgs.mkShell {
-          buildInputs = [
-            pkgs.sass
-            pkgs.gawk
-            pkgs.gnugrep
-            pkgs.gnused
+          buildInputs = with pkgs; [
+            sass
+            rustc
+            cargo
+            # Optional: for debugging
+            rustfmt
+            clippy
           ];
         };
 
-        packages.chiaroscuro = pkgs.stdenv.mkDerivation {
-          pname = "chiaroscuro";
-          version = "0.1.0";
-          src = ./.;
+        packages = {
+          # Export the parser tool separately if needed
+          inherit parser;
 
-          nativeBuildInputs = [
-            pkgs.sass
-            pkgs.gawk
-            pkgs.gnugrep
-            pkgs.coreutils
-            pkgs.bash
-          ];
+          # The main chiaroscuro package
+          chiaroscuro = pkgs.stdenv.mkDerivation {
+            pname = "chiaroscuro";
+            version = "0.1.0";
+            src = ./.;
 
-          buildPhase = ''
-            runHook preBuild
+            nativeBuildInputs = with pkgs; [
+              sass
+              parser
+            ];
 
-            mkdir -p dist
+            buildPhase = ''
+              runHook preBuild
 
-            echo "Compiling SCSS to dist/chiaroscuro.css..."
-            sass src/main.scss dist/chiaroscuro.css --style=expanded
+              # Create output directory
+              mkdir -p dist
 
-            echo "Generating Nix tokens to dist/chiaroscuro.nix..."
-            chmod +x ./scripts/generate-nix-tokens.sh
-            ./scripts/generate-nix-tokens.sh dist/chiaroscuro.css dist/chiaroscuro.nix
+              # Step 1: Compile SCSS to CSS
+              echo "Compiling SCSS to dist/chiaroscuro.css..."
+              sass src/main.scss dist/chiaroscuro.css --style=expanded
 
-            runHook postBuild
-          '';
+              # Step 2: Generate Nix file from CSS
+              echo "Generating Nix tokens to dist/chiaroscuro.nix..."
+              parser dist/chiaroscuro.css dist/chiaroscuro.nix
 
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out
-            cp -r dist/* $out/
-            runHook postInstall
-          '';
+              runHook postBuild
+            '';
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out
+              cp -r dist/* $out/
+              runHook postInstall
+            '';
+          };
+
+          default = self.packages.${system}.chiaroscuro;
         };
-
-        packages.default = self.packages.${system}.chiaroscuro;
       });
 }
