@@ -48,7 +48,6 @@
                         # Compile SCSS to CSS
                         echo "Compiling SCSS..."
                         sass src/main.scss $out/chiaroscuro.css \
-                          --no-source-map \
                           --style=expanded
 
                         # Parse CSS to generate Nix

@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io::Write;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -28,7 +29,16 @@ fn main() {
 
     let properties = parse_css_properties(&css_content);
     let resolved = resolve_references(&properties);
-    let nested = build_nested_structure(&resolved);
+    let mut nested = build_nested_structure(&resolved);
+
+    // Add wallpaper collections to the nested structure
+    if let Ok(wallpaper_data) = process_wallpapers(&css_content) {
+        if let Value::Nested(ref map) = wallpaper_data {
+            if !map.is_empty() {
+                nested.insert("wallpapers".to_string(), wallpaper_data);
+            }
+        }
+    }
 
     write_nix_file(output_file, &nested, input_file)
         .unwrap_or_else(|e| panic!("Failed to write Nix file: {}", e));
@@ -38,6 +48,74 @@ fn main() {
         output_file,
         resolved.len()
     );
+}
+
+fn process_wallpapers(css_content: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    let wallpaper_regex = Regex::new(r#"--wallpapers-([^:]+):\s*["']([^"']+)["']"#)?;
+    let wallpapers_dir = Path::new("assets/wallpapers");
+
+    let mut collections = IndexMap::new();
+
+    for capture in wallpaper_regex.captures_iter(css_content) {
+        let collection_name = &capture[2]; // The value, not the CSS variable name
+
+        if let Some(wallpaper_data) = scan_wallpaper_directory(collection_name, wallpapers_dir) {
+            collections.insert(collection_name.to_string(), wallpaper_data);
+        } else {
+            eprintln!("Warning: No wallpapers found for collection '{}'", collection_name);
+        }
+    }
+
+    if collections.is_empty() {
+        return Ok(Value::Nested(IndexMap::new()));
+    }
+
+    Ok(Value::Nested(collections))
+}
+
+fn scan_wallpaper_directory(collection_name: &str, wallpapers_dir: &Path) -> Option<Value> {
+    let collection_path = wallpapers_dir.join(collection_name);
+
+    if !collection_path.exists() || !collection_path.is_dir() {
+        return None;
+    }
+
+    let mut wallpapers = Vec::new();
+
+    if let Ok(entries) = fs::read_dir(&collection_path) {
+        for entry in entries.flatten() {
+            if let Some(file_name) = entry.file_name().to_str() {
+                if is_image_file(file_name) {
+                    wallpapers.push(file_name.to_string());
+                }
+            }
+        }
+    }
+
+    if wallpapers.is_empty() {
+        return None;
+    }
+
+    // Sort alphabetically
+    wallpapers.sort();
+
+    let mut collection_data = IndexMap::new();
+    collection_data.insert("collection".to_string(), Value::String(collection_name.to_string()));
+
+    for (index, wallpaper) in wallpapers.iter().enumerate() {
+        let entry_name = format!("wallpaper_{:02}", index + 1);
+        collection_data.insert(entry_name, Value::String(wallpaper.clone()));
+    }
+
+    Some(Value::Nested(collection_data))
+}
+
+fn is_image_file(filename: &str) -> bool {
+    let lower = filename.to_lowercase();
+    lower.ends_with(".jpg")
+        || lower.ends_with(".jpeg")
+        || lower.ends_with(".png")
+        || lower.ends_with(".webp")
 }
 
 fn parse_css_properties(css: &str) -> HashMap<String, String> {
