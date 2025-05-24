@@ -6,10 +6,8 @@
 
 set -euo pipefail
 
-# Input: Compiled CSS file from Sass
-CSS_INPUT_FILE="${1:-dist/phantom-provider.css}"
-# Output: Nix expression file
-NIX_OUTPUT_FILE="${2:-dist/phantom-tokens.nix}"
+CSS_INPUT_FILE="${1:-dist/chiaroscuro.css}"
+NIX_OUTPUT_FILE="${2:-dist/chiaroscuro.nix}"
 
 if [ ! -f "$CSS_INPUT_FILE" ]; then
   echo "Error: CSS input file '$CSS_INPUT_FILE' not found."

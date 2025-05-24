@@ -33,6 +33,7 @@
             pkgs.gawk
             pkgs.gnugrep
             pkgs.coreutils
+            pkgs.bash
           ];
 
           buildPhase = ''
@@ -44,7 +45,7 @@
             sass src/main.scss dist/chiaroscuro.css --style=expanded
 
             echo "Generating Nix tokens to dist/chiaroscuro.nix..."
-            chmod +x scripts/generate-nix-tokens.sh
+            chmod +x ./scripts/generate-nix-tokens.sh
             ./scripts/generate-nix-tokens.sh dist/chiaroscuro.css dist/chiaroscuro.nix
 
             runHook postBuild
@@ -52,7 +53,6 @@
 
           installPhase = ''
             runHook preInstall
-            # Copy the entire dist directory to $out
             mkdir -p $out
             cp -r dist/* $out/
             runHook postInstall
