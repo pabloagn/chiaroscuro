@@ -94,9 +94,14 @@ fn clean_value_for_nix(name: &str, value: &str) -> String {
         let parts: Vec<&str> = clean.split(',').collect();
         if let Some(first_font_part) = parts.get(0) {
             let mut primary_font = first_font_part.trim().to_string();
-            // Remove quotes
-            if (primary_font.starts_with('"') && primary_font.ends_with('"') && primary_font.len() >= 2) ||
-               (primary_font.starts_with('\'') && primary_font.ends_with('\'') && primary_font.len() >= 2) {
+            // Remove quotes from font names
+            if (primary_font.starts_with('"')
+                && primary_font.ends_with('"')
+                && primary_font.len() >= 2)
+                || (primary_font.starts_with('\'')
+                    && primary_font.ends_with('\'')
+                    && primary_font.len() >= 2)
+            {
                 primary_font = primary_font[1..primary_font.len() - 1].to_string();
             }
             clean = primary_font;
@@ -111,6 +116,14 @@ fn clean_value_for_nix(name: &str, value: &str) -> String {
     // Normalize whitespace
     let space_regex = Regex::new(r"\s+").unwrap();
     clean = space_regex.replace_all(&clean, " ").to_string();
+
+    // Remove surrounding quotes if present (for string values that come with quotes)
+    let trimmed = clean.trim();
+    if (trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() >= 2)
+        || (trimmed.starts_with('\'') && trimmed.ends_with('\'') && trimmed.len() >= 2)
+    {
+        clean = trimmed[1..trimmed.len() - 1].to_string();
+    }
 
     clean.trim().to_string()
 }
@@ -216,8 +229,8 @@ fn write_value<W: Write>(
 
         match value {
             Value::String(s) => {
-                let escaped = s.replace('\\', "\\\\").replace('"', "\\\"");
-                writeln!(writer, "{}{} = \"{}\";", indent, key_str, escaped)?;
+                // NO ESCAPING! Just write the string as-is
+                writeln!(writer, "{}{} = \"{}\";", indent, key_str, s)?;
             }
             Value::Nested(map) => {
                 writeln!(writer, "{}{} = {{", indent, key_str)?;
