@@ -1,4 +1,5 @@
-# phantom-theme/flake.nix
+# flake.nix
+
 {
   description = "Flake for Chiaroscuro";
 
@@ -22,8 +23,8 @@
           ];
         };
 
-        packages.phantom-provider = pkgs.stdenv.mkDerivation {
-          pname = "phantom-provider";
+        packages.chiaroscuro = pkgs.stdenv.mkDerivation {
+          pname = "chiaroscuro";
           version = "0.1.0";
           src = ./.;
 
