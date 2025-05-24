@@ -4,10 +4,9 @@
 ./direnv
 
 # Rust
-/target/
+/parser/target/
 **/*.rs.bk
 *.pdb
-Cargo.lock
 
 # IDE files
 .vscode/
