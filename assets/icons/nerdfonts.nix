@@ -1,14 +1,13 @@
 # assets/icons/nerdfonts.nix
 # Nerd Fonts character definitions for NixOS
 
-# assets/icons/nerdfonts.nix - Nerd Font icon definitions for NixOS with code points
 {
   nerdfonts = {
     # Arrows
-    arrows = {}; # No Nerd Font icons for arrows from yazi config
+    arrows = {};
 
     # Math
-    math = {}; # No Nerd Font icons for math from yazi config
+    math = {};
 
     # Checkboxes and status indicators
     status = {
@@ -17,7 +16,7 @@
     };
 
     # Weather and nature
-    weather = {}; # No Nerd Font icons for weather from yazi config
+    weather = {};
 
     # Technology and UI
     tech = {
@@ -39,7 +38,7 @@
     };
 
     # Currency
-    currency = {}; # No Nerd Font icons for currency from yazi config
+    currency = {};
 
     # Punctuation and typography
     typography = {
@@ -52,16 +51,16 @@
 
     # Brackets and separators
     brackets = {
-      separatorOpen = { char = ""; code = "U+E0B6"; }; # nf-pl-right_half_circle_thick (from powerline) - Not explicit in yazi config text, but implied from separator_open/close values
-      separatorClose = { char = ""; code = "U+E0B4"; }; # nf-pl-left_half_circle_thick (from powerline) - Not explicit in yazi config text, but implied from separator_open/close values
+      separatorOpen = { char = ""; code = "U+E0B6"; }; # nf-pl-right_half_circle_thick (from powerline)
+      separatorClose = { char = ""; code = "U+E0B4"; }; # nf-pl-left_half_circle_thick (from powerline)
       whichSeparator = { char = ""; code = "U+EA9C"; }; # nf-cod-split_horizontal
     };
 
     # Loading indicators and progress
-    loading = {}; # No Nerd Font icons for loading from yazi config
+    loading = {};
 
     # React and UI components
-    react = {}; # No Nerd Font icons for react from yazi config, as the ones there were standard Unicode.
+    react = {};
 
     # Programming Language and Development Icons
     programming = {

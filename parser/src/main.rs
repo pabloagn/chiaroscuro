@@ -40,6 +40,16 @@ fn main() {
         }
     }
 
+    // Add icon collections to the nested structure
+    // TODO: Add selection logic per theme in the future, but for now we make all available under theme
+    if let Ok(icons_data) = process_icons() {
+        if let Value::Nested(ref map) = icons_data {
+            if !map.is_empty() {
+                nested.insert("icons".to_string(), icons_data);
+            }
+        }
+    }
+
     write_nix_file(output_file, &nested, input_file)
         .unwrap_or_else(|e| panic!("Failed to write Nix file: {}", e));
 
@@ -48,6 +58,143 @@ fn main() {
         output_file,
         resolved.len()
     );
+}
+
+fn process_icons() -> Result<Value, Box<dyn std::error::Error>> {
+    let mut icons = IndexMap::new();
+
+    // Process unicode icons
+    if let Ok(unicode_data) = process_icon_file("assets/icons/unicode.nix", "unicode") {
+        icons.insert("unicode".to_string(), unicode_data);
+    } else {
+        eprintln!("Warning: Could not process unicode.nix");
+    }
+
+    // Process nerdfonts icons
+    if let Ok(nerdfonts_data) = process_icon_file("assets/icons/nerdfonts.nix", "nerdfonts") {
+        icons.insert("nerdfonts".to_string(), nerdfonts_data);
+    } else {
+        eprintln!("Warning: Could not process nerdfonts.nix");
+    }
+
+    Ok(Value::Nested(icons))
+}
+
+fn process_icon_file(file_path: &str, root_key: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(file_path)?;
+
+    // Parse the Nix file content to extract the icon data
+    // Since these are well-structured Nix files, we'll parse the basic structure
+    parse_nix_icon_structure(&content, root_key)
+}
+
+fn parse_nix_icon_structure(content: &str, root_key: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    let mut result = IndexMap::new();
+
+    // Find the root object for the specific key (unicode or nerdfonts)
+    let root_pattern = format!(r"{}\s*=\s*\{{", regex::escape(root_key));
+    let root_regex = Regex::new(&root_pattern)?;
+
+    if let Some(root_match) = root_regex.find(content) {
+        let start_pos = root_match.end();
+
+        // Find the matching closing brace for the root object
+        let mut brace_count = 1;
+        let mut end_pos = start_pos;
+        let chars: Vec<char> = content.chars().collect();
+
+        for i in start_pos..chars.len() {
+            match chars[i] {
+                '{' => brace_count += 1,
+                '}' => {
+                    brace_count -= 1;
+                    if brace_count == 0 {
+                        end_pos = i;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let root_content = &content[start_pos..end_pos];
+
+        // Parse categories within the root object
+        parse_nix_categories(root_content, &mut result)?;
+    }
+
+    Ok(Value::Nested(result))
+}
+
+fn parse_nix_categories(content: &str, result: &mut IndexMap<String, Value>) -> Result<(), Box<dyn std::error::Error>> {
+    // Pattern to match category definitions like "arrows = {"
+    let category_regex = Regex::new(r"(\w+)\s*=\s*\{")?;
+
+    for category_match in category_regex.find_iter(content) {
+        let category_start = category_match.start();
+        let category_name_match = Regex::new(r"(\w+)\s*=")?.find(&content[category_start..]).unwrap();
+        let category_name = content[category_start..category_start + category_name_match.end() - 1].trim().to_string();
+
+        // Find the content of this category
+        let brace_start = category_match.end();
+        let mut brace_count = 1;
+        let mut brace_end = brace_start;
+        let chars: Vec<char> = content.chars().collect();
+
+        for i in brace_start..chars.len() {
+            match chars[i] {
+                '{' => brace_count += 1,
+                '}' => {
+                    brace_count -= 1;
+                    if brace_count == 0 {
+                        brace_end = i;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let category_content = &content[brace_start..brace_end];
+        let mut category_data = IndexMap::new();
+
+        // Parse icon entries within the category
+        parse_nix_icon_entries(category_content, &mut category_data)?;
+
+        if !category_data.is_empty() {
+            result.insert(category_name, Value::Nested(category_data));
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_nix_icon_entries(content: &str, category_data: &mut IndexMap<String, Value>) -> Result<(), Box<dyn std::error::Error>> {
+    // Pattern to match icon entries like 'right = { char = "→"; code = "U+2192"; };'
+    let icon_regex = Regex::new(r#"(\w+)\s*=\s*\{\s*char\s*=\s*"([^"]+)";\s*code\s*=\s*"([^"]+)";\s*\};"#)?;
+
+    for icon_match in icon_regex.captures_iter(content) {
+        let icon_name = icon_match[1].to_string();
+        let char_value = icon_match[2].to_string();
+        let code_value = icon_match[3].to_string();
+
+        let mut icon_data = IndexMap::new();
+        icon_data.insert("char".to_string(), Value::String(char_value));
+        icon_data.insert("code".to_string(), Value::String(code_value));
+
+        category_data.insert(icon_name, Value::Nested(icon_data));
+    }
+
+    // Also handle entries that might only have an empty object like "arrows = {};"
+    let empty_category_regex = Regex::new(r"(\w+)\s*=\s*\{\s*\};")?;
+    for empty_match in empty_category_regex.captures_iter(content) {
+        let icon_name = empty_match[1].to_string();
+        if !category_data.contains_key(&icon_name) {
+            category_data.insert(icon_name, Value::Nested(IndexMap::new()));
+        }
+    }
+
+    Ok(())
 }
 
 fn process_wallpapers(css_content: &str) -> Result<Value, Box<dyn std::error::Error>> {
@@ -167,7 +314,6 @@ fn resolve_references(properties: &HashMap<String, String>) -> HashMap<String, S
 fn clean_value_for_nix(name: &str, value: &str) -> String {
     let mut clean = value.trim().to_string();
 
-    // For any font-related properties, extract just the first font name
     if name.contains("font") {
         let parts: Vec<&str> = clean.split(',').collect();
         if let Some(first_font_part) = parts.get(0) {
@@ -216,7 +362,6 @@ fn build_nested_structure(properties: &HashMap<String, String>) -> IndexMap<Stri
         let value = &properties[key];
 
         if key.starts_with("font-family-") {
-            // Special handling for font-family keys to preserve dashes in font type
             let font_type = &key[12..];
             let parts = vec!["font", "family", font_type];
             insert_nested(&mut root, &parts, value.clone());
@@ -257,7 +402,6 @@ fn sanitize_key(key: &str) -> String {
         return format!("_{}", key);
     }
     if key.starts_with("base0") {
-        // Keep base16 names as is
         return key.to_string();
     }
     // Preserve dashes in font family keys and other special cases
@@ -307,12 +451,11 @@ fn write_value<W: Write>(
 
         match value {
             Value::String(s) => {
-                // NO ESCAPING! Just write the string as-is
                 writeln!(writer, "{}{} = \"{}\";", indent, key_str, s)?;
             }
             Value::Nested(map) => {
                 writeln!(writer, "{}{} = {{", indent, key_str)?;
-                write_value(writer, map, indent_level + 1)?;
+                write_value(writer, &map, indent_level + 1)?;
                 writeln!(writer, "{}}};", indent)?;
             }
         }
