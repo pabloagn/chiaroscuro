@@ -64,14 +64,14 @@ fn process_icons() -> Result<Value, Box<dyn std::error::Error>> {
     let mut icons = IndexMap::new();
 
     // Process unicode icons
-    if let Ok(unicode_data) = process_icon_file("assets/icons/unicode.nix", "unicode") {
+    if let Ok(unicode_data) = process_icon_file_simple("assets/icons/unicode.nix") {
         icons.insert("unicode".to_string(), unicode_data);
     } else {
         eprintln!("Warning: Could not process unicode.nix");
     }
 
     // Process nerdfonts icons
-    if let Ok(nerdfonts_data) = process_icon_file("assets/icons/nerdfonts.nix", "nerdfonts") {
+    if let Ok(nerdfonts_data) = process_icon_file_simple("assets/icons/nerdfonts.nix") {
         icons.insert("nerdfonts".to_string(), nerdfonts_data);
     } else {
         eprintln!("Warning: Could not process nerdfonts.nix");
@@ -80,36 +80,46 @@ fn process_icons() -> Result<Value, Box<dyn std::error::Error>> {
     Ok(Value::Nested(icons))
 }
 
-fn process_icon_file(file_path: &str, root_key: &str) -> Result<Value, Box<dyn std::error::Error>> {
+fn process_icon_file_simple(file_path: &str) -> Result<Value, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(file_path)?;
 
-    // Parse the Nix file content to extract the icon data
-    // Since these are well-structured Nix files, we'll parse the basic structure
-    parse_nix_icon_structure(&content, root_key)
+    // Convert Nix-like syntax to something easier to parse
+    // Remove comments and normalize whitespace
+    let cleaned = content
+        .lines()
+        .filter(|line| !line.trim().starts_with('#'))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // Find the main structure (either "unicode = {" or "nerdfonts = {")
+    let main_content = if cleaned.contains("unicode = {") {
+        extract_main_block(&cleaned, "unicode")?
+    } else if cleaned.contains("nerdfonts = {") {
+        extract_main_block(&cleaned, "nerdfonts")?
+    } else {
+        return Err("No unicode or nerdfonts block found".into());
+    };
+
+    parse_nix_structure(&main_content)
 }
 
-fn parse_nix_icon_structure(content: &str, root_key: &str) -> Result<Value, Box<dyn std::error::Error>> {
-    let mut result = IndexMap::new();
-
-    // Find the root object for the specific key (unicode or nerdfonts)
-    let root_pattern = format!(r"{}\s*=\s*\{{", regex::escape(root_key));
-    let root_regex = Regex::new(&root_pattern)?;
-
-    if let Some(root_match) = root_regex.find(content) {
-        let start_pos = root_match.end();
-
-        // Find the matching closing brace for the root object
-        let mut brace_count = 1;
-        let mut end_pos = start_pos;
+fn extract_main_block(content: &str, block_name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let pattern = format!("{} = {{", block_name);
+    if let Some(start_pos) = content.find(&pattern) {
+        let start_content_pos = start_pos + pattern.len();
         let chars: Vec<char> = content.chars().collect();
+        let start_char_idx = content[..start_content_pos].chars().count();
 
-        for i in start_pos..chars.len() {
-            match chars[i] {
+        let mut brace_count = 1;
+        let mut end_char_idx = start_char_idx;
+
+        for (i, &ch) in chars.iter().enumerate().skip(start_char_idx) {
+            match ch {
                 '{' => brace_count += 1,
                 '}' => {
                     brace_count -= 1;
                     if brace_count == 0 {
-                        end_pos = i;
+                        end_char_idx = i;
                         break;
                     }
                 }
@@ -117,84 +127,96 @@ fn parse_nix_icon_structure(content: &str, root_key: &str) -> Result<Value, Box<
             }
         }
 
-        let root_content = &content[start_pos..end_pos];
+        let result: String = chars[start_char_idx..end_char_idx].iter().collect();
+        Ok(result)
+    } else {
+        Err(format!("Block {} not found", block_name).into())
+    }
+}
 
-        // Parse categories within the root object
-        parse_nix_categories(root_content, &mut result)?;
+fn parse_nix_structure(content: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    let mut result = IndexMap::new();
+
+    // Split by category blocks - look for "name = {"
+    let lines: Vec<&str> = content.lines().collect();
+    let mut i = 0;
+
+    while i < lines.len() {
+        let line = lines[i].trim();
+
+        // Look for category definition like "arrows = {"
+        if line.contains(" = {") && !line.contains("char =") && !line.contains("code =") {
+            if let Some(eq_pos) = line.find(" = {") {
+                let category_name = line[..eq_pos].trim().to_string();
+
+                // Collect all lines until we find the closing brace
+                let mut category_lines = Vec::new();
+                let mut brace_count = 1;
+                i += 1; // Move past the opening line
+
+                while i < lines.len() && brace_count > 0 {
+                    let current_line = lines[i];
+                    category_lines.push(current_line);
+
+                    for ch in current_line.chars() {
+                        match ch {
+                            '{' => brace_count += 1,
+                            '}' => brace_count -= 1,
+                            _ => {}
+                        }
+                    }
+
+                    if brace_count > 0 {
+                        i += 1;
+                    }
+                }
+
+                // Remove the last closing brace line
+                if let Some(last_line) = category_lines.last() {
+                    if last_line.trim() == "};" {
+                        category_lines.pop();
+                    }
+                }
+
+                let category_content = category_lines.join("\n");
+                let category_data = parse_category_content(&category_content)?;
+                result.insert(category_name, Value::Nested(category_data));
+            }
+        }
+        i += 1;
     }
 
     Ok(Value::Nested(result))
 }
 
-fn parse_nix_categories(content: &str, result: &mut IndexMap<String, Value>) -> Result<(), Box<dyn std::error::Error>> {
-    // Pattern to match category definitions like "arrows = {"
-    let category_regex = Regex::new(r"(\w+)\s*=\s*\{")?;
+fn parse_category_content(content: &str) -> Result<IndexMap<String, Value>, Box<dyn std::error::Error>> {
+    let mut result = IndexMap::new();
 
-    for category_match in category_regex.find_iter(content) {
-        let category_start = category_match.start();
-        let category_name_match = Regex::new(r"(\w+)\s*=")?.find(&content[category_start..]).unwrap();
-        let category_name = content[category_start..category_start + category_name_match.end() - 1].trim().to_string();
+    // Look for icon definitions like: iconName = { char = "→"; code = "U+2192"; };
+    let icon_pattern = Regex::new(r#"(\w+)\s*=\s*\{\s*char\s*=\s*"([^"]*)";\s*code\s*=\s*"([^"]*)";\s*\};"#)?;
 
-        // Find the content of this category
-        let brace_start = category_match.end();
-        let mut brace_count = 1;
-        let mut brace_end = brace_start;
-        let chars: Vec<char> = content.chars().collect();
-
-        for i in brace_start..chars.len() {
-            match chars[i] {
-                '{' => brace_count += 1,
-                '}' => {
-                    brace_count -= 1;
-                    if brace_count == 0 {
-                        brace_end = i;
-                        break;
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        let category_content = &content[brace_start..brace_end];
-        let mut category_data = IndexMap::new();
-
-        // Parse icon entries within the category
-        parse_nix_icon_entries(category_content, &mut category_data)?;
-
-        if !category_data.is_empty() {
-            result.insert(category_name, Value::Nested(category_data));
-        }
-    }
-
-    Ok(())
-}
-
-fn parse_nix_icon_entries(content: &str, category_data: &mut IndexMap<String, Value>) -> Result<(), Box<dyn std::error::Error>> {
-    // Pattern to match icon entries like 'right = { char = "→"; code = "U+2192"; };'
-    let icon_regex = Regex::new(r#"(\w+)\s*=\s*\{\s*char\s*=\s*"([^"]+)";\s*code\s*=\s*"([^"]+)";\s*\};"#)?;
-
-    for icon_match in icon_regex.captures_iter(content) {
-        let icon_name = icon_match[1].to_string();
-        let char_value = icon_match[2].to_string();
-        let code_value = icon_match[3].to_string();
+    for cap in icon_pattern.captures_iter(content) {
+        let icon_name = cap[1].to_string();
+        let char_value = cap[2].to_string();
+        let code_value = cap[3].to_string();
 
         let mut icon_data = IndexMap::new();
         icon_data.insert("char".to_string(), Value::String(char_value));
         icon_data.insert("code".to_string(), Value::String(code_value));
 
-        category_data.insert(icon_name, Value::Nested(icon_data));
+        result.insert(icon_name, Value::Nested(icon_data));
     }
 
-    // Also handle entries that might only have an empty object like "arrows = {};"
-    let empty_category_regex = Regex::new(r"(\w+)\s*=\s*\{\s*\};")?;
-    for empty_match in empty_category_regex.captures_iter(content) {
-        let icon_name = empty_match[1].to_string();
-        if !category_data.contains_key(&icon_name) {
-            category_data.insert(icon_name, Value::Nested(IndexMap::new()));
+    // Look for empty categories like: categoryName = {};
+    let empty_pattern = Regex::new(r"(\w+)\s*=\s*\{\s*\};")?;
+    for cap in empty_pattern.captures_iter(content) {
+        let name = cap[1].to_string();
+        if !result.contains_key(&name) {
+            result.insert(name, Value::Nested(IndexMap::new()));
         }
     }
 
-    Ok(())
+    Ok(result)
 }
 
 fn process_wallpapers(css_content: &str) -> Result<Value, Box<dyn std::error::Error>> {

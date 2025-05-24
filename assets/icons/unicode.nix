@@ -249,10 +249,10 @@
       caretDown = { char = "▾"; code = "U+25BE"; };
       caretLeft = { char = "◂"; code = "U+25C2"; };
       caretRight = { char = "▸"; code = "U+25B8"; };
-      singleLeft = { char = "❮"; code = "U+276E"; }; # Duplicate, keeping for original key consistency
-      singleRight = { char = "❯"; code = "U+276F"; }; # Duplicate, keeping for original key consistency
-      doubleLeft = { char = "«"; code = "U+00AB"; }; # Duplicate, keeping for original key consistency
-      doubleRight = { char = "»"; code = "U+00BB"; }; # Duplicate, keeping for original key consistency
+      singleLeft = { char = "❮"; code = "U+276E"; };
+      singleRight = { char = "❯"; code = "U+276F"; };
+      doubleLeft = { char = "«"; code = "U+00AB"; };
+      doubleRight = { char = "»"; code = "U+00BB"; };
       star = { char = "★"; code = "U+2605"; }; # Duplicate, keeping for original key consistency
       emptyStar = { char = "☆"; code = "U+2606"; }; # Duplicate, keeping for original key consistency
       halfStar = { char = "★☆"; code = "U+2605 U+2606"; };
