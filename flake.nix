@@ -1,7 +1,7 @@
 # flake.nix
 
 {
-  description = "Flake for Chiaroscuro";
+  description = "Chiaroscuro - A theme system for NixOS";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -9,74 +9,85 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
+    let
+      # Generate theme data at evaluation time
+      themeData = flake-utils.lib.eachDefaultSystem (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
 
-        parser = pkgs.rustPlatform.buildRustPackage {
-          pname = "parser";
-          version = "0.1.0";
-          src = ./parser;
-
-          cargoLock = {
-            lockFile = ./parser/Cargo.lock;
-          };
-        };
-
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            sass
-            rustc
-            cargo
-            rustfmt
-            clippy
-            rust-analyzer
-            nixfmt
-            direnv
-          ];
-        };
-
-        packages = {
-          inherit parser;
-
-          chiaroscuro = pkgs.stdenv.mkDerivation {
-            pname = "chiaroscuro";
+          # Build the theme package
+          themePackage = pkgs.stdenv.mkDerivation {
+            pname = "chiaroscuro-theme";
             version = "0.1.0";
             src = ./.;
 
             nativeBuildInputs = with pkgs; [
               sass
-              parser
+              (pkgs.rustPlatform.buildRustPackage {
+                pname = "parser";
+                version = "0.1.0";
+                src = ./parser;
+                cargoLock = {
+                  lockFile = ./parser/Cargo.lock;
+                };
+              })
             ];
 
             buildPhase = ''
-              runHook preBuild
+              mkdir -p $out
 
-              # Create output directory
-              mkdir -p dist
+              # Compile SCSS to CSS
+              echo "Compiling SCSS..."
+              sass src/main.scss $out/chiaroscuro.css --style=expanded
 
-              # Step 1: Compile SCSS to CSS
-              echo "Compiling SCSS to dist/chiaroscuro.css..."
-              sass src/main.scss dist/chiaroscuro.css --style=expanded
-
-              # Step 2: Generate Nix file from CSS
-              echo "Generating Nix tokens to dist/chiaroscuro.nix..."
-              parser dist/chiaroscuro.css dist/chiaroscuro.nix
-
-              runHook postBuild
+              # Generate Nix tokens
+              echo "Generating Nix tokens..."
+              parser $out/chiaroscuro.css $out/theme.nix
             '';
 
             installPhase = ''
-              runHook preInstall
-              mkdir -p $out
-              cp -r dist/* $out/
-              runHook postInstall
+              # Already installed in buildPhase
+              true
             '';
           };
 
-          default = self.packages.${system}.chiaroscuro;
+          # Import the generated theme data (Import From Derivation)
+          themeTokens = import "${themePackage}/theme.nix";
+        in
+        {
+          # Expose the raw theme tokens
+          inherit themeTokens;
+
+          # Expose the built package
+          packages = {
+            default = themePackage;
+            theme = themePackage;
+          };
+        }
+      );
+    in
+    themeData // {
+      # Expose theme data at the flake level for easier access
+      theme = {
+        # Extract the tokens for each system
+        tokens = builtins.mapAttrs (system: data: data.themeTokens) themeData;
+
+        # Provide a system-agnostic interface
+        lib = {
+          # Helper to get tokens for a specific system
+          getTokens = system: themeData.${system}.themeTokens;
+
+          # Helper to get theme variants
+          getVariant = system: variant:
+            let tokens = themeData.${system}.themeTokens;
+            in if variant == "dark" then tokens.theme
+               else tokens.theme; # For now, both map to the same until we add light variant
         };
-      });
+      };
+
+      # Expose overlays for packages that want to use the theme
+      overlays.default = final: prev: {
+        chiaroscuroTheme = self.theme.lib.getTokens final.system;
+      };
+    };
 }
