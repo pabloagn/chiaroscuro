@@ -1,7 +1,7 @@
 # parser/Cargo.toml
 
 [package]
-name = "parser"
+name = "chiaroscuro-parser"
 version = "0.1.0"
 edition = "2021"
 

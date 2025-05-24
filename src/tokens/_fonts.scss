@@ -1,18 +1,14 @@
 // src/tokens/_fonts.scss
 
 :root {
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  --font-family-serif: "Georgia", "Cambria", "Times New Roman", "Times", serif;
-  --font-family-mono: "Menlo", "Monaco", "Consolas", "Liberation Mono",
-    "Courier New", monospace;
-  --font-family-display: "Inter", var(--font-family-sans);
-  --font-family-body: "Noto Sans", var(--font-family-sans);
-  --font-family-heading: "Noto Sans", var(--font-family-sans);
-  --font-family-code: "Iosevka Comfy Duo", "JetBrains Mono", "Fira Code",
-    var(--font-family-mono);
-  --font-family-ui: system-ui, var(--font-family-sans);
+  --font-family-sans: "Work Sans", sans-serif;
+  --font-family-sans-alt: "Inter", sans-serif;
+  --font-family-serif: "Georgia", serif;
+  --font-family-serif-alt: "Noto Serif", serif;
+  --font-family-mono: "JetBrains Mono", monospace;
+  --font-family-mono-alt: "Iosevka Term", monospace;
+  --font-family-icons: "JetBrainsMono Nerd Font", monospace;
+  --font-family-icons-alt: "Fira Code", monospace;
   --font-size-2xs: 0.64rem;
   --font-size-xs: 0.8rem;
   --font-size-sm: 0.875rem;

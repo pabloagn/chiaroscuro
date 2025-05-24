@@ -26,12 +26,13 @@
   --theme-info-surface: var(--color-info-surface-light);
   --theme-success-surface: var(--color-success-surface-light);
   --theme-warning-surface: var(--color-warning-surface-light);
-  --theme-font-interface: var(--font-family-ui);
-  --theme-font-display: var(--font-family-display);
-  --theme-font-body: var(--font-family-body);
-  --theme-font-heading: var(--font-family-heading);
-  --theme-font-code: var(--font-family-code);
-  --theme-font-editor: var(--font-family-code);
+  --theme-font-interface: var(--font-family-sans);
+  --theme-font-display: var(--font-family-sans);
+  --theme-font-body: var(--font-family-sans);
+  --theme-font-heading: var(--font-family-sans);
+  --theme-font-code: var(--font-family-mono);
+  --theme-font-icons: var(--font-family-icons);
+  --theme-font-editor: var(--font-family-mono);
   --theme-text-xs: var(--font-size-xs);
   --theme-text-sm: var(--font-size-sm);
   --theme-text-base: var(--font-size-base);
@@ -112,4 +113,5 @@
   --theme-opacity-strong: var(--opacity-strong);
   --theme-opacity-solid: var(--opacity-solid);
   --theme-opacity-full: var(--opacity-100);
+  --theme-wallpaper-collection: var(--wallpapers-fiora);
 }
