@@ -2,29 +2,20 @@
   description = "Chiaroscuro - A Theme Manager for the Rhodium System";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    
-    kanso-nvim = {
-      url = "github:webhooked/kanso.nvim";
-      flake = false;
-    };
   };
   
-  outputs = { self, nixpkgs, kanso-nvim, ... }@inputs:
+  outputs = { self, nixpkgs, ... }@inputs:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
       
-      kansoColors = import ./themes/kanso.nix {
-        inherit lib;
-        src = kanso-nvim;
-      };
+      kansoColors = import ./themes/kanso.nix { inherit lib; };
       
       ports = import ./ports { inherit lib; };
       
     in
     {
-      # Expose object
       themes = {
         kanso-zen = {
           palette = kansoColors.zen;
@@ -33,6 +24,8 @@
           yazi = ports.yazi { colors = kansoColors; variant = "zen"; };
           lualine = ports.lualine { colors = kansoColors; variant = "zen"; };
           nvim = ports.nvim { colors = kansoColors; variant = "zen"; };
+          zellij = ports.zellij { colors = kansoColors; variant = "zen"; };
+          zathura = ports.zathura { colors = kansoColors; variant = "zen"; };
         };
         
         kanso-ink = {
@@ -42,6 +35,8 @@
           yazi = ports.yazi { colors = kansoColors; variant = "ink"; };
           lualine = ports.lualine { colors = kansoColors; variant = "ink"; };
           nvim = ports.nvim { colors = kansoColors; variant = "ink"; };
+          zellij = ports.zellij { colors = kansoColors; variant = "ink"; };
+          zathura = ports.zathura { colors = kansoColors; variant = "ink"; };
         };
         
         kanso-pearl = {
@@ -51,6 +46,8 @@
           yazi = ports.yazi { colors = kansoColors; variant = "pearl"; };
           lualine = ports.lualine { colors = kansoColors; variant = "pearl"; };
           nvim = ports.nvim { colors = kansoColors; variant = "pearl"; };
+          zellij = ports.zellij { colors = kansoColors; variant = "pearl"; };
+          zathura = ports.zathura { colors = kansoColors; variant = "pearl"; };
         };
       };
       
