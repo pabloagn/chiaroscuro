@@ -3,13 +3,13 @@
 { colors, variant ? "zen" }:
 let
   palette = colors.${variant} or colors.zen;
-  bg = palette.sumiInk1;
+  bg = palette.zen0;
 in
 {
   normal = {
-    a = { bg = palette.crystalBlue; fg = bg; };
-    b = { bg = "NONE"; fg = palette.crystalBlue; };
-    c = { bg = "NONE"; fg = palette.fujiWhite; };
+    a = { bg = palette.springBlue; fg = bg; };
+    b = { bg = "NONE"; fg = palette.springBlue; };
+    c = { bg = "NONE"; fg = palette.oldWhite; };
   };
   
   insert = {
@@ -18,13 +18,13 @@ in
   };
   
   command = {
-    a = { bg = palette.boatYellow2; fg = bg; };
-    b = { bg = "NONE"; fg = palette.boatYellow2; };
+    a = { bg = palette.autumnYellow; fg = bg; };
+    b = { bg = "NONE"; fg = palette.autumnYellow; };
   };
   
   visual = {
-    a = { bg = palette.oniViolet; fg = bg; };
-    b = { bg = "NONE"; fg = palette.oniViolet; };
+    a = { bg = palette.springViolet1; fg = bg; };
+    b = { bg = "NONE"; fg = palette.springViolet1; };
   };
   
   replace = {
@@ -33,8 +33,8 @@ in
   };
   
   inactive = {
-    a = { bg = "NONE"; fg = palette.sumiInk6; };
-    b = { bg = "NONE"; fg = palette.sumiInk6; };
-    c = { bg = "NONE"; fg = palette.sumiInk6; };
+    a = { bg = "NONE"; fg = palette.katanaGray; };
+    b = { bg = "NONE"; fg = palette.katanaGray; };
+    c = { bg = "NONE"; fg = palette.katanaGray; };
   };
 }

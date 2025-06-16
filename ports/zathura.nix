@@ -1,6 +1,9 @@
-{ lib }:
+{ ... }:
 
-{ colors, variant ? "zen" }:
+{
+  colors,
+  variant ? "zen",
+}:
 let
   palette = colors.${variant} or colors.zen;
   bg = palette.sumiInk1;
